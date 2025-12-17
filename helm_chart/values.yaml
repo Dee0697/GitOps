@@ -1,0 +1,17 @@
+microservice:
+  name: my-app
+  replicas: 3
+  namespace: deepak
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 50Mi
+hpa:
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 50
+image:
+  repository: rslim087/kubernetes-course-grade-submission-portal
+  tag: v2
+

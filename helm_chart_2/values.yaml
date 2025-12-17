@@ -1,0 +1,16 @@
+deploy:
+  name: my-app
+  image:  nginx
+  port: 80
+  tag: latest
+  namespace: web
+resources:
+  requests:
+    cpu: 100m
+    memory: 100Mi
+  limits:
+    memory: 100Mi
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 50

@@ -1,6 +1,6 @@
 resources:
   hpa:
-    minReplicas: 8
+    minReplicas: 4
     maxReplicas: 10
     targetCPUUtilizationPercentage: 50
 deploy:

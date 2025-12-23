@@ -1,0 +1,55 @@
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: blue
+    namespace: default
+    labels:
+      app: blue
+  spec:
+    selector:
+      matchLabels:
+        app: blue
+    replicas: 3
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: blue
+      spec:
+        # initContainers:
+          # Init containers are exactly like regular containers, except:
+            # - Init containers always run to completion.
+            # - Each init container must complete successfully before the next one starts.
+        containers:
+        - name: bee
+          image: nginx
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+          - containerPort:  80
+            name: bee
+        tolerations:
+        - key: "spray"                       #kubectl taint nodes node01 spray=mortein:NoSchedule
+          operator: "Equal"
+          value: "mortein"
+          effect: "NoSchedule"
+        affinity:
+          nodeAffinity:                     #kubectl label nodes node01 color=blue
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: "color"
+                  operator: "In"
+                  values:
+                  - "blue"
+
+        restartPolicy: Always

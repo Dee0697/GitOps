@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stateful-db
+  namespace: db-namespace
+spec:
+  selector:
+    matchLabels:
+      app: db # has to match .spec.template.metadata.labels
+  serviceName: headless-service # has to match the name of headless service
+  replicas: 4 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: db # has to match .spec.selector.matchLabels
+    spec:
+      containers:
+      - name: db
+        image: deep0697/pyapp
+        ports:
+        - containerPort: 5000
+          name: db
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 200Mi

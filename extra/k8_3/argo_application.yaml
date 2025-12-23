@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp2-dev
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Dee0697/GitOps.git
+    targetRevision: HEAD
+    path: helm_chart_2        # 👈 main chart to render
+
+    helm:
+      valueFiles:
+        - ../values/dev-values.yaml   # 👈 external values file
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: web
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

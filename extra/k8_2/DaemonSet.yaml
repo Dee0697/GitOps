@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemon
+  namespace: default
+  labels:
+    app: daemon
+spec:
+  selector:
+    matchLabels:
+      app: daemon
+  template:
+    metadata:
+      labels:
+        app: daemon
+    spec:
+      tolerations:
+      # this toleration is to have the daemonset runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: daemon
+        image: deep0697/pyapp:latest
+        resources:
+          limits:
+            memory: 100Mi
+          requests:
+            cpu: 50m 
+            memory: 50Mi
+        volumeMounts:
+        - name: localtime 
+          mountPath: /etc/localtime
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: localtime
+        hostPath:
+          path: /etc/localtime

@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: prod
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1            # create 1 extra pod
+      maxUnavailable: 0      # never reduce available pods
+
+  minReadySeconds: 10        # pod must stay Ready for 10s before counted
+
+  selector:
+    matchLabels:
+      app: myapp
+
+  template:
+    metadata:
+      labels:
+        app: myapp
+
+    spec:
+      terminationGracePeriodSeconds: 60  # must be > max request duration
+
+      containers:
+      - name: myapp
+        image: rslim087/kubernetes-course-grade-submission-portal:v2
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 5001
+
+        # -------------------------
+        # HEALTH PROBES (CRITICAL)
+        # -------------------------
+
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 5001
+          failureThreshold: 30     # 30 x 5s = 150s startup allowance
+          periodSeconds: 5
+
+        readinessProbe:                         # does not restart pod/container if fails
+          httpGet:                              # Only removes from service endpoints if fails
+            path: /health/ready             #until and unless liveness fails for this pod, replicaset assume this to be good
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+
+        livenessProbe:                      # does restart container if fails and not the pod.
+          httpGet:
+            path: /health/live
+            port: 5001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+
+        # -------------------------
+        # GRACEFUL SHUTDOWN
+        # -------------------------
+
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  echo "Starting graceful shutdown"
+                  sleep 20   # allow kube-proxy + ingress to stop routing
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "200Mi"
+          limits:
+            memory: "300Mi"
+
+
+#If using nginx ingress:
+
+#nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+#nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+#nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503"

@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-deployment
+  namespace: default
+  labels:
+    app: my-app
+    version: v1.0
+spec:
+  replicas: 4 # Adjust based on load; use HPA for autoscaling in production
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: v1.0
+    spec:
+      # Affinity: Prefer scheduling on nodes with specific labels; avoid scheduling multiple replicas on the same node
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: size
+                operator: In
+                values:
+                - large
+          - weight: 50  # Lower preference for medium
+            preference:
+              matchExpressions:
+              - key: size
+                operator: In
+                values:
+                - medium
+
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: my-app
+              topologyKey: kubernetes.io/hostname  # Spread across nodes
+      containers:
+      - name: my-app-container
+        image: nginx  # Replace with your image
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        env:
+        - name: ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /  # Adjust to your app's health endpoint
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /  # Adjust to your app's readiness endpoint
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Optional: Add volume mounts if needed
+        volumeMounts:
+        - name: app-logs
+          mountPath: /var/log/app
+      volumes:
+      - name: app-logs
+        persistentVolumeClaim:
+          claimName: app-logs-pvc
+      
+      # Security context
+    
+      terminationGracePeriodSeconds: 30
+      # Service account if needed
+      #serviceAccountName: my-app-sa
+      # Tolerations if scheduling on tainted nodes
+      tolerations:
+      - key: "node-type"
+        operator: "Equal"
+        value: "app-node"
+        effect: "NoSchedule"
